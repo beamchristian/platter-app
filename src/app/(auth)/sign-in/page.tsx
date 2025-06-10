@@ -13,14 +13,16 @@ const Page = async () => {
 
   return (
     <div className='w-full max-w-sm mx-auto space-y-6'>
-      <h1 className='text-2xl font-bold text-center mb-6'>Sign In</h1>
+      <h1 className='text-2xl font-bold text-center mb-6 text-card-foreground'>
+        Sign In
+      </h1>
 
       <div className='relative'>
         <div className='absolute inset-0 flex items-center mb-7'>
-          <span className='w-full border-t' />
+          <span className='w-full border-t border-border' />
         </div>
         <div className='relative flex justify-center text-sm'>
-          <span className='bg-background px-2 mt-4 text-muted-foreground'>
+          <span className='px-2 mt-4 text-muted-foreground'>
             Enter Email Below
           </span>
         </div>

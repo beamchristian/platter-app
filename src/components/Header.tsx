@@ -1,4 +1,3 @@
-// components/Header.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import {
   subscribeUser,
   unsubscribeUser,
   sendNotification,
-} from "@/app/actions"; // Adjust import path
+} from "@/app/actions";
 
 // Helper function remains the same
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -25,7 +24,7 @@ function PushNotificationControl() {
   const [subscription, setSubscription] = useState<PushSubscription | null>(
     null
   );
-  const [showInput, setShowInput] = useState<boolean>(false); // State to control test message input visibility
+  const [showInput, setShowInput] = useState<boolean>(false);
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
@@ -60,18 +59,12 @@ function PushNotificationControl() {
       });
       setSubscription(sub);
 
-      // *** ADD THIS BLOCK TO SEND TO DATABASE ***
       const result = await subscribeUser(sub.toJSON());
       if (result.success) {
         alert("Successfully subscribed to push notifications!");
       } else {
-        // Handle the case where saving to DB failed
         alert(`Failed to save subscription to database: ${result.error}`);
-        // You might want to unsubscribe from the browser if DB save fails
-        // await sub.unsubscribe();
-        // setSubscription(null);
       }
-      // *****************************************
     } catch (error) {
       console.error("Failed to subscribe to push notifications:", error);
       if ((error as DOMException).name === "NotAllowedError") {
@@ -86,10 +79,9 @@ function PushNotificationControl() {
     if (subscription) {
       try {
         await subscription.unsubscribe();
-        // Pass the endpoint to the server action for deletion
-        const result = await unsubscribeUser(subscription.endpoint); // <-- FIX THIS LINE
+        const result = await unsubscribeUser(subscription.endpoint);
         if (result.success) {
-          setSubscription(null); // Clear local state only if server deletion was successful
+          setSubscription(null);
           alert("Successfully unsubscribed from push notifications.");
         } else {
           alert(`Failed to unsubscribe: ${result.error}`);
@@ -111,7 +103,7 @@ function PushNotificationControl() {
           alert(`Failed to send test: ${result.error}`);
         }
         setMessage("");
-        setShowInput(false); // Hide input after sending
+        setShowInput(false);
       } catch (error) {
         console.error("Error sending test notification:", error);
         alert("An error occurred while sending test notification.");
@@ -124,14 +116,16 @@ function PushNotificationControl() {
   if (!isSupported) {
     return (
       <div className='flex flex-col items-center group relative'>
+        {/* Use text-muted-foreground for non-supported icon */}
         <span
-          className='text-gray-400 text-2xl'
+          className='text-muted-foreground text-2xl'
           title='Push notifications not supported'
         >
           🔔
         </span>{" "}
-        {/* Bell icon faded */}
-        <span className='text-xs text-gray-500 mt-1'>Not Supported</span>
+        <span className='text-xs text-muted-foreground mt-1'>
+          Not Supported
+        </span>
       </div>
     );
   }
@@ -141,32 +135,36 @@ function PushNotificationControl() {
       {subscription ? (
         <>
           <button
-            onClick={() => setShowInput(!showInput)} // Toggle input visibility
-            className='text-blue-600 text-2xl hover:text-blue-700 transition-colors cursor-pointer'
+            onClick={() => setShowInput(!showInput)}
+            // Use text-primary for subscribed icon, with hover
+            className='text-primary text-2xl hover:text-primary-foreground transition-colors cursor-pointer'
             title='Send Test Notification'
           >
             🔔
           </button>
-          <span className='text-xs text-blue-600 mt-1'>Subscribed</span>
+          <span className='text-xs text-primary mt-1'>Subscribed</span>
           {showInput && (
-            <div className='absolute top-full mt-2 w-56 p-2 bg-white border border-gray-200 rounded-md shadow-lg z-10 flex flex-col items-start'>
+            // Use bg-card for the popover background, border-border, text-foreground
+            <div className='absolute top-full mt-2 w-56 p-2 bg-card border border-border rounded-md shadow-lg z-10 flex flex-col items-start text-foreground'>
               <input
                 type='text'
                 placeholder='Test message'
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className='w-full p-1 text-xs border border-gray-300 rounded-sm mb-2 focus:outline-none focus:ring-1 focus:ring-blue-400'
+                // Use input-specific classes
+                className='w-full p-1 text-xs border border-input bg-input rounded-sm mb-2 focus:outline-none focus:ring-1 focus:ring-ring'
               />
               <div className='flex justify-end w-full space-x-2'>
+                {/* Use button variants for these */}
                 <button
                   onClick={handleSendTest}
-                  className='px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs hover:bg-blue-200 transition-colors'
+                  className='px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs hover:bg-primary/90 transition-colors'
                 >
                   Send
                 </button>
                 <button
                   onClick={handleUnsubscribe}
-                  className='px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs hover:bg-gray-200 transition-colors'
+                  className='px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs hover:bg-secondary/80 transition-colors'
                 >
                   Unsubscribe
                 </button>
@@ -178,12 +176,13 @@ function PushNotificationControl() {
         <>
           <button
             onClick={handleSubscribe}
-            className='text-gray-500 text-2xl hover:text-gray-600 transition-colors cursor-pointer'
+            // Use text-muted-foreground for unsubscribe icon
+            className='text-muted-foreground text-2xl hover:text-foreground transition-colors cursor-pointer'
             title='Subscribe to Push Notifications'
           >
             🔕
           </button>
-          <span className='text-xs text-gray-500 mt-1'>Subscribe</span>
+          <span className='text-xs text-muted-foreground mt-1'>Subscribe</span>
         </>
       )}
     </div>
@@ -195,7 +194,7 @@ function InstallAppControl() {
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
   const [deferredPrompt, setDeferredPrompt] = useState<Event | null>(null);
   const [showIOSInstructions, setShowIOSInstructions] =
-    useState<boolean>(false); // State for iOS popover
+    useState<boolean>(false);
 
   useEffect(() => {
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent));
@@ -231,35 +230,39 @@ function InstallAppControl() {
   if (isStandalone) {
     return (
       <div className='flex flex-col items-center'>
-        <span className='text-green-600 text-2xl' title='App is installed'>
+        {/* Consider a more theme-aware color for success, maybe a muted green or accent-foreground */}
+        <span
+          className='text-accent-foreground text-2xl'
+          title='App is installed'
+        >
           ✅
         </span>{" "}
-        {/* Checkmark icon */}
-        <span className='text-xs text-green-600 mt-1'>Installed</span>
+        <span className='text-xs text-accent-foreground mt-1'>Installed</span>
       </div>
     );
   }
 
-  // Only show install button if not iOS OR if iOS AND we have a prompt or need to show instructions
   if (!deferredPrompt && !isIOS) {
-    return null; // Don't show anything if no install prompt available for non-iOS
+    return null;
   }
 
   return (
     <div className='flex flex-col items-center group relative'>
       <button
         onClick={handleInstallClick}
-        className='text-gray-500 text-2xl hover:text-gray-600 transition-colors cursor-pointer'
+        // Use text-muted-foreground for install icon
+        className='text-muted-foreground text-2xl hover:text-foreground transition-colors cursor-pointer'
         title='Install App'
       >
         {" "}
-        📱 {/* Mobile phone icon */}
+        📱
       </button>
-      <span className='text-xs text-gray-500 mt-1'>Install App</span>
+      <span className='text-xs text-muted-foreground mt-1'>Install App</span>
 
       {showIOSInstructions && isIOS && (
-        <div className='absolute top-full mt-2 w-64 p-3 bg-white border border-gray-200 rounded-md shadow-lg z-10'>
-          <p className='text-xs text-gray-700'>
+        // Use bg-card, border-border, text-foreground
+        <div className='absolute top-full mt-2 w-64 p-3 bg-card border border-border rounded-md shadow-lg z-10'>
+          <p className='text-xs text-foreground'>
             To install on iOS, tap the share button
             <span role='img' aria-label='share icon' className='mx-0.5'>
               {" "}
@@ -274,7 +277,8 @@ function InstallAppControl() {
           </p>
           <button
             onClick={() => setShowIOSInstructions(false)}
-            className='mt-2 px-2 py-1 bg-gray-100 text-gray-700 rounded-md text-xs hover:bg-gray-200 transition-colors w-full'
+            // Use secondary button styling
+            className='mt-2 px-2 py-1 bg-secondary text-secondary-foreground rounded-md text-xs hover:bg-secondary/80 transition-colors w-full'
           >
             Got It
           </button>
@@ -286,11 +290,12 @@ function InstallAppControl() {
 
 export default function Header() {
   return (
-    <header className='w-full bg-white shadow-sm p-4 flex justify-between items-center border-b border-gray-100'>
-      <h1 className='text-2xl font-bold text-gray-900'>Platter Order App</h1>
+    // Use bg-card for header, text-card-foreground for title, border-border
+    <header className='w-full bg-card shadow-sm p-4 flex justify-between items-center border-b border-border'>
+      <h1 className='text-2xl font-bold text-card-foreground'>
+        Platter Order App
+      </h1>
       <div className='flex items-center space-x-6'>
-        {" "}
-        {/* Increased space-x */}
         <PushNotificationControl />
         <InstallAppControl />
       </div>

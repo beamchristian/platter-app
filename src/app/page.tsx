@@ -8,9 +8,12 @@ const Page = async () => {
 
   return (
     <>
-      <div className='bg-gray-100 rounded-lg p-4 text-center mb-6'>
-        <p className='text-gray-600'>Signed in as:</p>
-        <p className='font-medium'>{session.user?.email}</p>
+      <div className='bg-secondary rounded-lg p-4 text-center mb-6'>
+        <p className='text-secondary-foreground'>Signed in as:</p>
+        <p className='font-medium text-foreground'>
+          {session.user?.email}
+        </p>{" "}
+        {/* Use text-foreground for the email */}
       </div>
 
       <SignOut />

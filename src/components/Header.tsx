@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  //   subscribeUser,
+  subscribeUser,
   unsubscribeUser,
   sendNotification,
 } from "@/app/actions"; // Adjust import path
@@ -59,7 +59,19 @@ function PushNotificationControl() {
         ),
       });
       setSubscription(sub);
-      alert("Successfully subscribed to push notifications!");
+
+      // *** ADD THIS BLOCK TO SEND TO DATABASE ***
+      const result = await subscribeUser(sub.toJSON());
+      if (result.success) {
+        alert("Successfully subscribed to push notifications!");
+      } else {
+        // Handle the case where saving to DB failed
+        alert(`Failed to save subscription to database: ${result.error}`);
+        // You might want to unsubscribe from the browser if DB save fails
+        // await sub.unsubscribe();
+        // setSubscription(null);
+      }
+      // *****************************************
     } catch (error) {
       console.error("Failed to subscribe to push notifications:", error);
       if ((error as DOMException).name === "NotAllowedError") {
@@ -74,9 +86,14 @@ function PushNotificationControl() {
     if (subscription) {
       try {
         await subscription.unsubscribe();
-        setSubscription(null);
-        await unsubscribeUser();
-        alert("Successfully unsubscribed from push notifications.");
+        // Pass the endpoint to the server action for deletion
+        const result = await unsubscribeUser(subscription.endpoint); // <-- FIX THIS LINE
+        if (result.success) {
+          setSubscription(null); // Clear local state only if server deletion was successful
+          alert("Successfully unsubscribed from push notifications.");
+        } else {
+          alert(`Failed to unsubscribe: ${result.error}`);
+        }
       } catch (error) {
         console.error("Failed to unsubscribe:", error);
         alert("Failed to unsubscribe.");

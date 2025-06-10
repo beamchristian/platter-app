@@ -13,6 +13,7 @@
 # testing
 /coverage
 
+seed.ts
 # next.js
 /.next/
 /out/
@@ -41,3 +42,4 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+/src/generated/prisma

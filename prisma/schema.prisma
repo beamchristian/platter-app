@@ -1,0 +1,264 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Existing PushSubscription model
+model PushSubscription {
+  id             String    @id @default(uuid())
+  endpoint       String    @unique
+  p256dh         String
+  auth           String
+  expirationTime DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id])
+}
+
+// --- User and Role Management ---
+enum Role {
+  MANAGER
+  TEAM_MEMBER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String? // Make nullable for OAuth users, if you plan to add them later
+  image         String?
+  role          Role      @default(TEAM_MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // These are your specific named relations
+  assignedOrders   PlatterOrder[]    @relation("AssignedToUser")
+  createdTemplates PlatterTemplate[] @relation("CreatedByUser") // Ensure "CreatedByUser" is the relation name
+
+  accounts         Account[]
+  sessions         Session[]
+  // Optional for WebAuthn support
+  Authenticator    Authenticator[]
+  PushSubscription PushSubscription[] // This one is correct for your PushSubscription model
+}
+
+// These are the models required by Auth.js Prisma Adapter
+// Auth.js models - keep these exactly as provided previously
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}
+
+// --- Department Model ---
+model Department {
+  id               String            @id @default(uuid())
+  name             String            @unique
+  description      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  platterTemplates PlatterTemplate[]
+  platterOrders    PlatterOrder[]
+
+  @@map("departments")
+}
+
+// --- Platter Size Enum (NEW) ---
+enum PlatterSizeEnum {
+  SMALL
+  MEDIUM
+  LARGE
+  CUSTOM // For cases like cookie counts or special sizes
+}
+
+// --- Platter Option Type Enum (NEW) ---
+// Defines the category of options for a platter (e.g., "Meat", "Cheese", "Sub", "Cookie Flavor")
+enum PlatterOptionTypeEnum {
+  SUB_OPTION
+  MEAT
+  CHEESE
+  COOKIE_FLAVOR
+  BRIE_FLAVOR
+  GENERAL_ITEM // For other generic ingredients/items
+}
+
+// --- Platter Template Management (REVISED) ---
+model PlatterTemplate {
+  id               String     @id @default(uuid())
+  name             String     @unique // e.g., "Sandwich Platter", "Meat & Cheese Platter"
+  description      String?
+  baseInstructions String? // General assembly instructions for the template type
+  imageUrl         String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  // Ensure "CreatedByUser" matches the relation name on the User model
+  createdBy        User       @relation("CreatedByUser", fields: [createdById], references: [id])
+  createdById      String
+  department       Department @relation(fields: [departmentId], references: [id])
+  departmentId     String
+
+  // Link to specific variations/sizes of this template
+  variations PlatterTemplateVariation[]
+
+  @@map("platter_templates")
+}
+
+// --- Platter Template Variation (NEW) ---
+// Represents a specific size/configuration of a PlatterTemplate
+model PlatterTemplateVariation {
+  id               String                      @id @default(uuid())
+  platterTemplate  PlatterTemplate             @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId       String
+  size             PlatterSizeEnum // SMALL, MEDIUM, LARGE, CUSTOM
+  sizeDescription  String? // e.g., "Serves 8-12", "32 cookies"
+  price            Decimal                     @db.Money // Store price as Money type for precision
+  maxSelections    Int? // Max number of items allowed for selection (e.g., 3 meats, 3 cheeses)
+  // Options available for THIS variation (e.g., specific subs for a Large Sandwich Platter)
+  availableOptions PlatterOptionAvailability[] // A list of options available for this specific variation
+  // Orders placed for this specific variation
+  platterOrders    PlatterOrder[]
+
+  @@unique([templateId, size], name: "TemplateSizeUnique")
+  @@map("platter_template_variations")
+}
+
+// --- Platter Option (NEW) ---
+// Represents a specific selectable item (e.g., "Pan Roasted Turkey", "Colby", "Chocolate Chip")
+model PlatterOption {
+  id          String                @id @default(uuid())
+  name        String                @unique // e.g., "Pan Roasted Turkey", "Farm Trio", "Chocolate Chip"
+  type        PlatterOptionTypeEnum // MEAT, CHEESE, SUB_OPTION, COOKIE_FLAVOR, BRIE_FLAVOR
+  description String? // Optional description for the option
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  // The templates/variations where this option is available
+  availableInVariations PlatterOptionAvailability[]
+  // The items chosen for a specific order
+  chosenInOrders        PlatterOrderItem[]
+
+  @@map("platter_options")
+}
+
+// --- Junction table for PlatterTemplateVariation and PlatterOption (NEW) ---
+// Defines which options are available for which platter variations
+model PlatterOptionAvailability {
+  id            String                   @id @default(uuid())
+  variation     PlatterTemplateVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  variationId   String
+  option        PlatterOption            @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  optionId      String
+  // This allows you to specify if an option is required, optional, or has specific limits within a variation
+  minSelections Int?
+  maxSelections Int?
+  isDefault     Boolean                  @default(false) // e.g., if a template always includes certain items
+
+  @@unique([variationId, optionId]) // An option can only be available once per variation
+  @@map("platter_option_availability")
+}
+
+// --- Platter Order Management (REVISED) ---
+// Ensure your PlatterOrder model has the correct relation back to User
+model PlatterOrder {
+  id                   String        @id @default(cuid())
+  orderDate            DateTime      @default(now())
+  dueDate              DateTime
+  status               PlatterStatus @default(PENDING)
+  variationId          String
+  assignedToId         String? // Nullable if an order might not be assigned yet
+  customNotes          String?       @db.Text
+  substitutePreference String?       @db.Text
+  departmentId         String
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  variation  PlatterTemplateVariation @relation(fields: [variationId], references: [id])
+  // Ensure "AssignedToUser" matches the relation name on the User model
+  assignedTo User?                    @relation("AssignedToUser", fields: [assignedToId], references: [id])
+  department Department               @relation(fields: [departmentId], references: [id])
+  items      PlatterOrderItem[]
+}
+
+// --- Platter Order Item (NEW) ---
+// Represents the specific options chosen by the customer for a particular PlatterOrder
+model PlatterOrderItem {
+  id            String        @id @default(uuid())
+  platterOrder  PlatterOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId       String
+  platterOption PlatterOption @relation(fields: [optionId], references: [id])
+  optionId      String
+  quantity      Int           @default(1) // Useful if a customer can pick multiples of an item
+
+  @@unique([orderId, optionId]) // An option can only be chosen once per order item, quantity handles multiples
+  @@map("platter_order_items")
+}
+
+enum PlatterStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETE
+  CANCELLED
+}

@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
 import Header from "@/components/Header";
-import Head from "next/head";
 
 const APP_NAME = "Platter App";
 const APP_DEFAULT_TITLE = "Platter App";
@@ -57,9 +55,9 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body className={`antialiased`}>
-        <Header/>
-        <main className="flex items-center justify-center min-h-screen bg-gray-100">
-          <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <Header />
+        <main className='flex items-center justify-center min-h-screen bg-gray-100'>
+          <div className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'>
             {children}
           </div>
         </main>

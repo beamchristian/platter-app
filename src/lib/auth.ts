@@ -1,5 +1,4 @@
 // src/lib/auth.ts
-import { v4 as uuid } from "uuid";
 import { encode as defaultEncode } from "next-auth/jwt";
 import { compare } from "bcryptjs"; // Make sure to import 'compare' from bcryptjs
 
@@ -61,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // 5. If authentication is successful, return the user object.
         // DO NOT return the passwordHash for security.
         // NextAuth.js will use this user object to create a session.
-        const { passwordHash, ...userWithoutPasswordHash } = user;
+        const { ...userWithoutPasswordHash } = user;
         return userWithoutPasswordHash;
       },
     }),

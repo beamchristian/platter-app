@@ -56,11 +56,7 @@ export default function RootLayout({
     <html lang='en'>
       <body className={`antialiased`}>
         <Header />
-        <main className='flex items-center justify-center min-h-screen'>
-          <div className='p-8 rounded-lg shadow-md w-full max-w-md bg-card text-card-foreground'>
-            {children}
-          </div>
-        </main>
+        {children}
       </body>
     </html>
   );

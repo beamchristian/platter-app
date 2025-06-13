@@ -43,7 +43,7 @@ const PlatterTemplateEditPage = async ({
         <h1 className='text-2xl font-bold'>Platter Template Not Found</h1>
         <p className='mt-2'>
           The template with ID &quot;{templateId}&quot; does not exist or you
-          don't have permission to access it.
+          don&apos;t have permission to access it.
         </p>
         <p className='mt-4'>
           <Link

@@ -8,9 +8,9 @@ import Link from "next/link";
 
 interface PlatterTemplateEditPageProps {
   // In Next.js 15, `params` is a Promise, so we type it accordingly.
-  params: {
+  params: Promise<{
     id: string; // The dynamic 'id' from the URL
-  };
+  }>;
 }
 
 // Mark the component function as `async` to use `await` directly
